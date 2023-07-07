@@ -1,6 +1,15 @@
 [env]
+AWS_S3__BUCKET = "documents"
+AWS_S3__ENDPOINT = "http://localhost:9000"
+AWS_S3__REGION = "minio"
 PORT = "3000"
+AWS_ACCESS_KEY_ID = "minioadmin"
+AWS_SECRET_ACCESS_KEY = "minioadmin"
 
 [tasks.run]
 command = "cargo"
 args = ["run"]
+
+[tasks.run-watch]
+command = "cargo"
+args = ["watch", "-x", "run"]

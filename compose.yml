@@ -1,0 +1,17 @@
+services:
+  minio:
+    image: quay.io/minio/minio:RELEASE.2023-04-20T17-56-55Z
+    hostname: minio
+    command: server --console-address ":9001" /data
+    ports:
+      - 9000:9000
+      - 9001:9001
+    environment:
+      # AWS ACCESS KEY ID
+      MINIO_ROOT_USER: minioadmin
+      # AWS SECRET KEY
+      MINIO_ROOT_PASSWORD: minioadmin
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 1s
+      retries: 3

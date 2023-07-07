@@ -1,35 +1,47 @@
 mod configuration;
-
-use std::sync::Arc;
+mod s3_client;
 
 use axum::{
+    body::StreamBody,
     extract::{Path, State},
-    response::IntoResponse,
+    http::StatusCode,
     routing::get,
     Router,
 };
 use config::Config;
 use configuration::Configuration;
-use tokio::fs::File;
+use s3_client::S3Client;
+use std::sync::Arc;
+use tokio::io::AsyncRead;
+use tokio_util::io::ReaderStream;
+
+pub struct AppState {
+    pub config: Configuration,
+    pub s3_client: S3Client,
+}
 
 async fn download(
-    State(config): State<Arc<Configuration>>,
+    State(state): State<Arc<AppState>>,
     Path(file_name): Path<String>,
-) -> impl IntoResponse {
-    let full_path = format!("{}/{}", config.files_path, file_name);
-    let file = File::open(full_path).await.unwrap();
-    let stream = tokio_util::io::ReaderStream::new(file);
-    "hi"
+) -> Result<StreamBody<ReaderStream<impl AsyncRead>>, (StatusCode, String)> {
+    let stream = state
+        .s3_client
+        .get_object(&state.config.aws_s3.bucket, &file_name)
+        .await
+        .map_err(|err| {
+            (
+                StatusCode::IM_A_TEAPOT,
+                format!("There was an error: {err:?}"),
+            )
+        })?;
+
+    Ok(StreamBody::new(stream))
 }
 
-async fn hello_world() -> impl IntoResponse {
-    "Hello, World!"
-}
-
-fn router(config: Configuration) -> Router {
+fn router(state: AppState) -> Router {
     Router::new()
-        .route("/", get(hello_world))
-        .with_state(Arc::new(config))
+        .route("/:file", get(download))
+        .with_state(Arc::new(state))
 }
 
 #[tokio::main]
@@ -45,8 +57,13 @@ async fn main() {
         .try_deserialize()
         .expect("Cannot deserialize configuration");
 
-    axum::Server::bind(&config.address())
-        .serve(router(config).into_make_service())
+    let address = config.address();
+    let aws_s3_config = config.aws_s3.clone();
+    let s3_client = S3Client::new(aws_s3_config.region, aws_s3_config.endpoint).await;
+    let app_state = AppState { config, s3_client };
+
+    axum::Server::bind(&address)
+        .serve(router(app_state).into_make_service())
         .await
         .unwrap();
 }
