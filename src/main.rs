@@ -26,7 +26,7 @@ async fn download(
 ) -> Result<StreamBody<ReaderStream<impl AsyncRead>>, (StatusCode, String)> {
     let stream = state
         .s3_client
-        .get_object(&state.config.aws_s3.bucket, &file_name)
+        .get_object(&state.config.bucket, &file_name)
         .await
         .map_err(|err| {
             (

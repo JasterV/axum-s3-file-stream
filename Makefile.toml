@@ -1,7 +1,7 @@
 [env]
-AWS_S3__BUCKET = "documents"
 AWS_S3__ENDPOINT = "http://localhost:9000"
 AWS_S3__REGION = "minio"
+BUCKET = "documents"
 PORT = "3000"
 AWS_ACCESS_KEY_ID = "minioadmin"
 AWS_SECRET_ACCESS_KEY = "minioadmin"

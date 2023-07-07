@@ -5,12 +5,12 @@ use serde::Deserialize;
 #[derive(Deserialize)]
 pub struct Configuration {
     pub port: u16,
+    pub bucket: String,
     pub aws_s3: AwsS3,
 }
 
 #[derive(Clone, Deserialize)]
 pub struct AwsS3 {
-    pub bucket: String,
     pub endpoint: String,
     pub region: String,
 }
