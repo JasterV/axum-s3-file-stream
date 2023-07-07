@@ -1,6 +1,9 @@
-use aws_sdk_s3::{config::Region, error::SdkError, operation::get_object::GetObjectError, Client};
-use tokio::io::AsyncRead;
-use tokio_util::io::ReaderStream;
+use aws_sdk_s3::{
+    config::Region, error::SdkError, operation::get_object::GetObjectError,
+    primitives::ByteStreamError, Client,
+};
+use bytes::Bytes;
+use futures_util::Stream;
 
 pub struct S3Client {
     client: Client,
@@ -29,7 +32,7 @@ impl S3Client {
         &self,
         bucket: &str,
         key: &str,
-    ) -> Result<ReaderStream<impl AsyncRead>, SdkError<GetObjectError>> {
+    ) -> Result<impl Stream<Item = Result<Bytes, ByteStreamError>>, SdkError<GetObjectError>> {
         let object = self
             .client
             .get_object()
@@ -38,8 +41,7 @@ impl S3Client {
             .send()
             .await?;
 
-        let async_read = object.body.into_async_read();
-        let stream = ReaderStream::new(async_read);
+        let stream = object.body;
         Ok(stream)
     }
 }

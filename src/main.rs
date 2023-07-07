@@ -1,6 +1,7 @@
 mod configuration;
 mod s3_client;
 
+use aws_sdk_s3::primitives::ByteStreamError;
 use axum::{
     body::StreamBody,
     extract::{Path, State},
@@ -8,12 +9,12 @@ use axum::{
     routing::get,
     Router,
 };
+use bytes::Bytes;
 use config::Config;
 use configuration::Configuration;
+use futures_util::Stream;
 use s3_client::S3Client;
 use std::sync::Arc;
-use tokio::io::AsyncRead;
-use tokio_util::io::ReaderStream;
 
 pub struct AppState {
     pub config: Configuration,
@@ -23,7 +24,7 @@ pub struct AppState {
 async fn download(
     State(state): State<Arc<AppState>>,
     Path(file_name): Path<String>,
-) -> Result<StreamBody<ReaderStream<impl AsyncRead>>, (StatusCode, String)> {
+) -> Result<StreamBody<impl Stream<Item = Result<Bytes, ByteStreamError>>>, (StatusCode, String)> {
     let stream = state
         .s3_client
         .get_object(&state.config.bucket, &file_name)
