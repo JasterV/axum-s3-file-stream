@@ -4,7 +4,8 @@ use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct Configuration {
-    port: u16,
+    pub port: u16,
+    pub files_path: String,
 }
 
 impl Configuration {

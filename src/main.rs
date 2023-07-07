@@ -1,15 +1,35 @@
 mod configuration;
 
-use axum::{response::IntoResponse, routing::get, Router};
+use std::sync::Arc;
+
+use axum::{
+    extract::{Path, State},
+    response::IntoResponse,
+    routing::get,
+    Router,
+};
 use config::Config;
 use configuration::Configuration;
+use tokio::fs::File;
+
+async fn download(
+    State(config): State<Arc<Configuration>>,
+    Path(file_name): Path<String>,
+) -> impl IntoResponse {
+    let full_path = format!("{}/{}", config.files_path, file_name);
+    let file = File::open(full_path).await.unwrap();
+    let stream = tokio_util::io::ReaderStream::new(file);
+    "hi"
+}
 
 async fn hello_world() -> impl IntoResponse {
     "Hello, World!"
 }
 
-fn router() -> Router {
-    Router::new().route("/", get(hello_world))
+fn router(config: Configuration) -> Router {
+    Router::new()
+        .route("/", get(hello_world))
+        .with_state(Arc::new(config))
 }
 
 #[tokio::main]
@@ -25,9 +45,8 @@ async fn main() {
         .try_deserialize()
         .expect("Cannot deserialize configuration");
 
-    // run it with hyper on localhost:3000
     axum::Server::bind(&config.address())
-        .serve(router().into_make_service())
+        .serve(router(config).into_make_service())
         .await
         .unwrap();
 }
