@@ -1,4 +1,5 @@
 mod configuration;
+mod error;
 mod s3_client;
 
 use aws_sdk_s3::primitives::ByteStreamError;
@@ -6,12 +7,12 @@ use aws_sdk_s3::Client as S3Client;
 use axum::{
     body::StreamBody,
     extract::{Path, State},
-    http::StatusCode,
     routing::get,
     Router,
 };
 use bytes::Bytes;
 use configuration::Configuration;
+use error::AppError;
 use futures_util::Stream;
 use std::sync::Arc;
 
@@ -23,20 +24,14 @@ pub struct AppState {
 async fn download(
     State(state): State<Arc<AppState>>,
     Path(file_name): Path<String>,
-) -> Result<StreamBody<impl Stream<Item = Result<Bytes, ByteStreamError>>>, (StatusCode, String)> {
+) -> Result<StreamBody<impl Stream<Item = Result<Bytes, ByteStreamError>>>, AppError> {
     let object = state
         .s3_client
         .get_object()
         .bucket(state.config.bucket.as_ref())
         .key(file_name)
         .send()
-        .await
-        .map_err(|err| {
-            (
-                StatusCode::IM_A_TEAPOT,
-                format!("There was an error: {err:?}"),
-            )
-        })?;
+        .await?;
 
     Ok(StreamBody::new(object.body))
 }
