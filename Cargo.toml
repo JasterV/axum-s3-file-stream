@@ -8,16 +8,7 @@ edition = "2021"
 [dependencies]
 aws-config = "0.55.3"
 aws-sdk-s3 = "0.28.0"
-axum = { version = "0.6.18", features = [
-  "form",
-  "http2",
-  "json",
-  "matched-path",
-  "original-uri",
-  "query",
-  "tokio",
-  "tower-log",
-] }
+axum = "0.6.18"
 config = "0.13.3"
 serde = { version = "1.0.167", features = ["derive", "rc"] }
 tokio = { version = "1.29.1", features = ["full"] }
