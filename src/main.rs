@@ -2,6 +2,7 @@ mod configuration;
 mod s3_client;
 
 use aws_sdk_s3::primitives::ByteStreamError;
+use aws_sdk_s3::Client as S3Client;
 use axum::{
     body::StreamBody,
     extract::{Path, State},
@@ -13,7 +14,6 @@ use bytes::Bytes;
 use config::Config;
 use configuration::Configuration;
 use futures_util::Stream;
-use s3_client::S3Client;
 use std::sync::Arc;
 
 pub struct AppState {
@@ -23,11 +23,14 @@ pub struct AppState {
 
 async fn download(
     State(state): State<Arc<AppState>>,
-    Path(file_name): Path<String>,
+    Path(file_name): Path<Arc<str>>,
 ) -> Result<StreamBody<impl Stream<Item = Result<Bytes, ByteStreamError>>>, (StatusCode, String)> {
-    let stream = state
+    let object = state
         .s3_client
-        .get_object(&state.config.bucket, &file_name)
+        .get_object()
+        .bucket(state.config.bucket.as_ref())
+        .key(file_name.as_ref())
+        .send()
         .await
         .map_err(|err| {
             (
@@ -36,7 +39,7 @@ async fn download(
             )
         })?;
 
-    Ok(StreamBody::new(stream))
+    Ok(StreamBody::new(object.body))
 }
 
 fn router(state: AppState) -> Router {
@@ -59,8 +62,7 @@ async fn main() {
         .expect("Cannot deserialize configuration");
 
     let address = config.address();
-    let aws_s3_config = config.aws_s3.clone();
-    let s3_client = S3Client::new(aws_s3_config.region, aws_s3_config.endpoint).await;
+    let s3_client = s3_client::build(&config.aws_s3.region, &config.aws_s3.endpoint).await;
     let app_state = AppState { config, s3_client };
 
     axum::Server::bind(&address)

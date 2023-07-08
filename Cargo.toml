@@ -19,7 +19,7 @@ axum = { version = "0.6.18", features = [
   "tower-log",
 ] }
 config = "0.13.3"
-serde = { version = "1.0.167", features = ["derive"] }
+serde = { version = "1.0.167", features = ["derive", "rc"] }
 tokio = { version = "1.29.1", features = ["full"] }
 futures-util = "0.3.28"
 bytes = "1.4.0"

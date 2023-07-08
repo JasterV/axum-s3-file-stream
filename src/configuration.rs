@@ -1,18 +1,20 @@
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-
 use serde::Deserialize;
+use std::{
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    sync::Arc,
+};
 
 #[derive(Deserialize)]
 pub struct Configuration {
     pub port: u16,
-    pub bucket: String,
+    pub bucket: Arc<str>,
     pub aws_s3: AwsS3,
 }
 
 #[derive(Clone, Deserialize)]
 pub struct AwsS3 {
-    pub endpoint: String,
-    pub region: String,
+    pub endpoint: Arc<str>,
+    pub region: Arc<str>,
 }
 
 impl Configuration {
