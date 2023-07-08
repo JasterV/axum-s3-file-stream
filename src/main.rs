@@ -11,7 +11,6 @@ use axum::{
     Router,
 };
 use bytes::Bytes;
-use config::Config;
 use configuration::Configuration;
 use futures_util::Stream;
 use std::sync::Arc;
@@ -23,13 +22,13 @@ pub struct AppState {
 
 async fn download(
     State(state): State<Arc<AppState>>,
-    Path(file_name): Path<Arc<str>>,
+    Path(file_name): Path<String>,
 ) -> Result<StreamBody<impl Stream<Item = Result<Bytes, ByteStreamError>>>, (StatusCode, String)> {
     let object = state
         .s3_client
         .get_object()
         .bucket(state.config.bucket.as_ref())
-        .key(file_name.as_ref())
+        .key(file_name)
         .send()
         .await
         .map_err(|err| {
@@ -50,19 +49,9 @@ fn router(state: AppState) -> Router {
 
 #[tokio::main]
 async fn main() {
-    let config: Configuration = Config::builder()
-        .add_source(
-            config::Environment::default()
-                .try_parsing(true)
-                .separator("__"),
-        )
-        .build()
-        .expect("Failed to load app configuration")
-        .try_deserialize()
-        .expect("Cannot deserialize configuration");
-
-    let address = config.address();
+    let config = Configuration::load().expect("Error loading configuration");
     let s3_client = s3_client::build(&config.aws_s3.region, &config.aws_s3.endpoint).await;
+    let address = config.address();
     let app_state = AppState { config, s3_client };
 
     axum::Server::bind(&address)
